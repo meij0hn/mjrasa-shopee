@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/auth/route": "/api/auth",
+  "/api/auth/status/route": "/api/auth/status",
+  "/api/orders/route": "/api/orders",
+  "/api/products/route": "/api/products",
+  "/api/shop/route": "/api/shop",
+  "/auth/callback/route": "/auth/callback",
+  "/api/token/route": "/api/token",
+  "/favicon.ico/route": "/favicon.ico",
+  "/api/products/models/route": "/api/products/models",
+  "/api/products/stock/route": "/api/products/stock",
+  "/page": "/"
+}
