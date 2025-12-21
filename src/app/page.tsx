@@ -1,65 +1,248 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+import ShopInfo from '@/components/ShopInfo';
+import ProductList from '@/components/ProductList';
+import OrderList from '@/components/OrderList';
+
+interface ShopData {
+  shop_name?: string;
+  region?: string;
+  status?: string;
+  is_cb?: boolean;
+}
+
+interface Product {
+  item_id: number;
+  item_status: string;
+  update_time?: number;
+}
+
+interface Order {
+  order_sn: string;
+  order_status: string;
+  create_time?: number;
+}
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [shopLoading, setShopLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  const [shop, setShop] = useState<ShopData | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Check URL params for messages
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    if (connected === 'true') {
+      setMessage({ type: 'success', text: '✅ Successfully connected to Shopee!' });
+    } else if (error) {
+      setMessage({ type: 'error', text: `❌ Error: ${error}` });
+    }
+
+    // Clear message after 5 seconds
+    const timer = setTimeout(() => setMessage(null), 5000);
+    return () => clearTimeout(timer);
+  }, [searchParams]);
+
+  // Check auth status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        setIsConnected(data.isConnected);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Fetch data when connected
+  const fetchData = useCallback(async () => {
+    if (!isConnected) return;
+
+    // Fetch shop info
+    setShopLoading(true);
+    try {
+      const res = await fetch('/api/shop');
+      const data = await res.json();
+      console.log('Shop API Response:', data);
+
+      if (data.response) {
+        setShop(data.response);
+      } else if (data.shop_name) {
+        setShop(data);
+      } else if (data.error) {
+        console.error('Shop API error:', data.error, data.message);
+      }
+    } catch (error) {
+      console.error('Shop fetch failed:', error);
+    } finally {
+      setShopLoading(false);
+    }
+
+    // Fetch products
+    setProductsLoading(true);
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      if (data.response?.item) {
+        setProducts(data.response.item);
+        setHasMoreProducts(data.response.has_next_page);
+      }
+    } catch (error) {
+      console.error('Products fetch failed:', error);
+    } finally {
+      setProductsLoading(false);
+    }
+
+    // Fetch orders
+    setOrdersLoading(true);
+    try {
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      console.log('Orders API Response:', data);
+
+      if (data.response?.order_list) {
+        setOrders(data.response.order_list);
+        setHasMoreOrders(data.response.more);
+      } else if (data.order_list) {
+        setOrders(data.order_list);
+        setHasMoreOrders(data.more);
+      }
+    } catch (error) {
+      console.error('Orders fetch failed:', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/status', { method: 'DELETE' });
+      setIsConnected(false);
+      setShop(null);
+      setProducts([]);
+      setOrders([]);
+      setMessage({ type: 'success', text: '👋 Logged out successfully' });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar isConnected={false} />
+        <main className="container">
+          <div className="loading-container" style={{ minHeight: '60vh' }}>
+            <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
+            <span>Loading...</span>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <Navbar isConnected={isConnected} onLogout={handleLogout} />
+
+      <main className="container">
+        {message && (
+          <div className={`message message-${message.type}`} style={{ marginTop: '1rem' }}>
+            {message.text}
+          </div>
+        )}
+
+        {!isConnected ? (
+          // Hero section for unauthenticated users
+          <section className="hero">
+            <h1>Shopee Seller Hub</h1>
+            <p>
+              Connect your Shopee store and manage everything from one beautiful dashboard.
+              View your shop info, products, and orders at a glance.
+            </p>
+            <a href="/api/auth" className="btn btn-primary" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
+              🔗 Connect Your Shopee Store
+            </a>
+
+            <div className="features">
+              <div className="feature">
+                <span className="feature-icon">🏪</span>
+                <span>Shop Info</span>
+              </div>
+              <div className="feature">
+                <span className="feature-icon">📦</span>
+                <span>Products</span>
+              </div>
+              <div className="feature">
+                <span className="feature-icon">🛍️</span>
+                <span>Orders</span>
+              </div>
+              <div className="feature">
+                <span className="feature-icon">📊</span>
+                <span>Analytics</span>
+              </div>
+            </div>
+          </section>
+        ) : (
+          // Dashboard for authenticated users
+          <section className="dashboard">
+            <div className="dashboard-header">
+              <h1>Welcome back! 👋</h1>
+              <p>Here&apos;s what&apos;s happening with your store today.</p>
+            </div>
+
+            {/* Shop Info Card */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <ShopInfo shop={shop} loading={shopLoading} />
+            </div>
+
+            {/* Products and Orders Grid */}
+            <div className="grid grid-2">
+              <ProductList
+                products={products}
+                loading={productsLoading}
+                hasMore={hasMoreProducts}
+                onStockUpdate={fetchData}
+              />
+              <OrderList
+                orders={orders}
+                loading={ordersLoading}
+                hasMore={hasMoreOrders}
+              />
+            </div>
+          </section>
+        )}
+
+        <footer className="footer">
+          <p>Shopee Seller Hub © 2024. Built with ❤️ for Shopee sellers.</p>
+        </footer>
       </main>
-    </div>
+    </>
   );
 }
