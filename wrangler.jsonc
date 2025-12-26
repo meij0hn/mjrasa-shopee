@@ -15,7 +15,7 @@
         "SHOPEE_PARTNER_KEY": "shpk777676574c704c6870496a436166455665746d544153724d4c644972706b",
         "SHOPEE_SHOP_ID": "226264877",
         "SHOPEE_API_URL": "https://openplatform.sandbox.test-stable.shopee.sg",
-        "NEXT_PUBLIC_APP_URL": "https://mjrasa-uat.meijohn.workers.dev",
-        "APP_URL": "https://mjrasa-uat.meijohn.workers.dev"
+        "NEXT_PUBLIC_APP_URL": "https://mjrasa-sit.meijohn.workers.dev",
+        "APP_URL": "https://mjrasa-sit.meijohn.workers.dev"
     }
 }
