@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     if (!code || !shopId) {
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}?error=missing_params`
+            `${process.env.APP_URL}?error=missing_params`
         );
     }
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
         if (tokenResult.error) {
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}?error=${tokenResult.error}`
+                `${process.env.APP_URL}?error=${tokenResult.error}`
             );
         }
 
@@ -49,12 +49,12 @@ export async function GET(request: NextRequest) {
 
         // Redirect back to dashboard
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}?connected=true`
+            `${process.env.APP_URL}?connected=true`
         );
     } catch (error) {
         console.error('Callback error:', error);
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}?error=token_exchange_failed`
+            `${process.env.APP_URL}?error=token_exchange_failed`
         );
     }
 }

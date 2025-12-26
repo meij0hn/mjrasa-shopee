@@ -186,9 +186,24 @@ export default function HomeContent() {
                             Connect your Shopee store and manage everything from one beautiful dashboard.
                             View your shop info, products, and orders at a glance.
                         </p>
-                        <a href="/api/auth" className="btn btn-primary" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/auth');
+                                    const data = await res.json();
+                                    if (data.authLink) {
+                                        window.location.href = data.authLink;
+                                    }
+                                } catch (error) {
+                                    console.error('Failed to get auth link:', error);
+                                    setMessage({ type: 'error', text: '❌ Failed to connect to Shopee' });
+                                }
+                            }}
+                            className="btn btn-primary"
+                            style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}
+                        >
                             🔗 Connect Your Shopee Store
-                        </a>
+                        </button>
 
                         <div className="features">
                             <div className="feature">
