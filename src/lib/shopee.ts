@@ -145,7 +145,34 @@ export async function getShopInfo(accessToken: string, shopId: number) {
 }
 
 /**
- * Get product list
+ * Get item base info (including item_name, description, etc.)
+ */
+export async function getItemBaseInfo(
+  accessToken: string,
+  shopId: number,
+  itemIdList: number[]
+) {
+  const path = '/api/v2/product/get_item_base_info';
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
+
+  const params = new URLSearchParams({
+    partner_id: PARTNER_ID,
+    timestamp: timestamp.toString(),
+    access_token: accessToken,
+    shop_id: shopId.toString(),
+    sign: sign,
+    item_id_list: itemIdList.join(','),
+  });
+
+  const url = `${API_URL}${path}?${params.toString()}`;
+  const response = await fetch(url);
+  return response.json();
+}
+
+/**
+ * Get product list with item names
+ * First calls get_item_list, then get_item_base_info to enrich with item_name
  */
 export async function getProductList(
   accessToken: string,
@@ -153,6 +180,7 @@ export async function getProductList(
   offset: number = 0,
   pageSize: number = 20
 ) {
+  // Step 1: Get item list
   const path = '/api/v2/product/get_item_list';
   const timestamp = Math.floor(Date.now() / 1000);
   const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
@@ -170,7 +198,46 @@ export async function getProductList(
 
   const url = `${API_URL}${path}?${params.toString()}`;
   const response = await fetch(url);
-  return response.json();
+  const itemListResult = await response.json();
+
+  // Step 2: If we have items, get their base info (including item_name)
+  if (
+    itemListResult.response?.item &&
+    itemListResult.response.item.length > 0
+  ) {
+    const itemIds = itemListResult.response.item.map(
+      (item: { item_id: number }) => item.item_id
+    );
+
+    const baseInfoResult = await getItemBaseInfo(accessToken, shopId, itemIds);
+
+    // Step 3: Merge item_name into the original item list
+    if (baseInfoResult.response?.item_list) {
+      const baseInfoMap = new Map<number, { item_name: string; image: { image_url_list: string[] } }>();
+      baseInfoResult.response.item_list.forEach(
+        (info: { item_id: number; item_name: string; image: { image_url_list: string[] } }) => {
+          baseInfoMap.set(info.item_id, {
+            item_name: info.item_name,
+            image: info.image,
+          });
+        }
+      );
+
+      // Enrich original items with item_name and image
+      itemListResult.response.item = itemListResult.response.item.map(
+        (item: { item_id: number }) => {
+          const baseInfo = baseInfoMap.get(item.item_id);
+          return {
+            ...item,
+            item_name: baseInfo?.item_name || '',
+            image: baseInfo?.image || { image_url_list: [] },
+          };
+        }
+      );
+    }
+  }
+
+  return itemListResult;
 }
 
 /**
@@ -326,3 +393,128 @@ export async function updateStock(
   console.log('updateStock Response:', JSON.stringify(result, null, 2));
   return result;
 }
+
+/**
+ * Delete a model (variant) from a product
+ */
+export async function deleteModel(
+  accessToken: string,
+  shopId: number,
+  itemId: number,
+  modelId: number
+) {
+  const path = '/api/v2/product/delete_model';
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
+
+  const params = new URLSearchParams({
+    partner_id: PARTNER_ID,
+    timestamp: timestamp.toString(),
+    access_token: accessToken,
+    shop_id: shopId.toString(),
+    sign: sign,
+  });
+
+  const url = `${API_URL}${path}?${params.toString()}`;
+
+  const body = {
+    item_id: itemId,
+    model_id: modelId,
+  };
+
+  console.log('deleteModel URL:', url);
+  console.log('deleteModel Body:', JSON.stringify(body, null, 2));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json();
+  console.log('deleteModel Response:', JSON.stringify(result, null, 2));
+  return result;
+}
+
+/**
+ * Tier variation option
+ */
+interface TierVariationOption {
+  option: string;
+  image?: {
+    image_id: string;
+  };
+}
+
+/**
+ * Tier variation structure
+ */
+interface TierVariation {
+  name: string;
+  option_list: TierVariationOption[];
+}
+
+/**
+ * Model info for update_tier_variation
+ */
+interface ModelInfo {
+  tier_index: number[];
+  model_sku?: string;
+}
+
+/**
+ * Update tier variation - used for deleting variation options
+ * This API can add, delete, or update tier variation options
+ */
+export async function updateTierVariation(
+  accessToken: string,
+  shopId: number,
+  itemId: number,
+  tierVariation: TierVariation[],
+  model?: ModelInfo[]
+) {
+  const path = '/api/v2/product/update_tier_variation';
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
+
+  const params = new URLSearchParams({
+    partner_id: PARTNER_ID,
+    timestamp: timestamp.toString(),
+    access_token: accessToken,
+    shop_id: shopId.toString(),
+    sign: sign,
+  });
+
+  const url = `${API_URL}${path}?${params.toString()}`;
+
+  const body: {
+    item_id: number;
+    tier_variation: TierVariation[];
+    model?: ModelInfo[];
+  } = {
+    item_id: itemId,
+    tier_variation: tierVariation,
+  };
+
+  if (model) {
+    body.model = model;
+  }
+
+  console.log('updateTierVariation URL:', url);
+  console.log('updateTierVariation Body:', JSON.stringify(body, null, 2));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json();
+  console.log('updateTierVariation Response:', JSON.stringify(result, null, 2));
+  return result;
+}
+

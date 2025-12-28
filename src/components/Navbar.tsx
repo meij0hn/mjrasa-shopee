@@ -18,7 +18,7 @@ export default function Navbar({ isConnected, onLogout }: NavbarProps) {
 
                 <div>
                     {isConnected ? (
-                        <button onClick={onLogout} className="btn btn-danger">
+                        <button onClick={onLogout} className="btn">
                             🚪 Logout
                         </button>
                     ) : (

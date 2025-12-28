@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { Warehouse, Eraser } from 'lucide-react';
 import StockEditModal from './StockEditModal';
+import DeleteEmptyStockModal from './DeleteEmptyStockModal';
 import Pagination from './Pagination';
 
 interface Product {
     item_id: number;
+    item_name?: string;
     item_status: string;
     update_time?: number;
 }
@@ -32,6 +35,7 @@ export default function ProductList({
     onStockUpdate
 }: ProductListProps) {
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
+    const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
 
     const handleEditClick = (product: Product) => {
         setEditingItemId(product.item_id);
@@ -42,6 +46,20 @@ export default function ProductList({
     };
 
     const handleStockUpdated = () => {
+        if (onStockUpdate) {
+            onStockUpdate();
+        }
+    };
+
+    const handleDeleteEmptyStock = (product: Product) => {
+        setDeletingItemId(product.item_id);
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeletingItemId(null);
+    };
+
+    const handleDeleteSuccess = () => {
         if (onStockUpdate) {
             onStockUpdate();
         }
@@ -98,6 +116,7 @@ export default function ProductList({
                             <thead>
                                 <tr>
                                     <th>Item ID</th>
+                                    <th>Name</th>
                                     <th>Status</th>
                                     <th>Last Updated</th>
                                     <th>Actions</th>
@@ -109,6 +128,9 @@ export default function ProductList({
                                         <td>
                                             <strong>#{product.item_id}</strong>
                                         </td>
+                                        <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {product.item_name || '-'}
+                                        </td>
                                         <td>{getStatusBadge(product.item_status)}</td>
                                         <td style={{ color: 'var(--text-secondary)' }}>
                                             {product.update_time
@@ -116,13 +138,24 @@ export default function ProductList({
                                                 : '-'}
                                         </td>
                                         <td>
-                                            <button
-                                                onClick={() => handleEditClick(product)}
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                                            >
-                                                📝 Edit Stock
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    onClick={() => handleEditClick(product)}
+                                                    className="btn btn-secondary"
+                                                    style={{ padding: '0.5rem', lineHeight: 1 }}
+                                                    title="Edit Stock"
+                                                >
+                                                    <Warehouse size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteEmptyStock(product)}
+                                                    className="btn btn-secondary"
+                                                    style={{ padding: '0.5rem', lineHeight: 1 }}
+                                                    title="Delete Empty Stock"
+                                                >
+                                                    <Eraser size={16} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -149,6 +182,16 @@ export default function ProductList({
                     onClose={handleCloseModal}
                     itemId={editingItemId}
                     onSuccess={handleStockUpdated}
+                />
+            )}
+
+            {/* Delete Empty Stock Modal */}
+            {deletingItemId !== null && (
+                <DeleteEmptyStockModal
+                    isOpen={deletingItemId !== null}
+                    onClose={handleCloseDeleteModal}
+                    itemId={deletingItemId}
+                    onSuccess={handleDeleteSuccess}
                 />
             )}
         </>

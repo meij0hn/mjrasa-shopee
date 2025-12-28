@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Sidebar from '@/components/Sidebar';
 import ShopInfo from '@/components/ShopInfo';
 import ProductList from '@/components/ProductList';
 import OrderList from '@/components/OrderList';
@@ -234,15 +235,15 @@ export default function HomeContent() {
         <>
             <Navbar isConnected={isConnected} onLogout={handleLogout} />
 
-            <main className="container">
-                {message && (
-                    <div className={`message message-${message.type}`} style={{ marginTop: '1rem' }}>
-                        {message.text}
-                    </div>
-                )}
+            {!isConnected ? (
+                <main className="container">
+                    {message && (
+                        <div className={`message message-${message.type}`} style={{ marginTop: '1rem' }}>
+                            {message.text}
+                        </div>
+                    )}
 
-                {!isConnected ? (
-                    // Hero section for unauthenticated users
+                    {/* Hero section for unauthenticated users */}
                     <section className="hero">
                         <h1>Shopee Seller Hub</h1>
                         <p>
@@ -287,46 +288,62 @@ export default function HomeContent() {
                             </div>
                         </div>
                     </section>
-                ) : (
-                    // Dashboard for authenticated users
-                    <section className="dashboard">
-                        <div className="dashboard-header">
-                            <h1>Welcome back! 👋</h1>
-                            <p>Here&apos;s what&apos;s happening with your store today.</p>
-                        </div>
 
-                        {/* Shop Info Card */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <ShopInfo shop={shop} loading={shopLoading} />
-                        </div>
+                    <footer className="footer">
+                        <p>Shopee Seller Hub © 2025 for Shopee sellers.</p>
+                    </footer>
+                </main>
+            ) : (
+                <div className="app-layout">
+                    <Sidebar isConnected={isConnected} />
 
-                        {/* Products and Orders Grid */}
-                        <div className="grid grid-2">
-                            <ProductList
-                                products={products}
-                                loading={productsLoading}
-                                hasMore={hasMoreProducts}
-                                currentPage={productsPage}
-                                totalItems={totalProducts}
-                                pageSize={PAGE_SIZE}
-                                onPageChange={handleProductsPageChange}
-                                onStockUpdate={handleStockUpdate}
-                            />
-                            <OrderList
-                                orders={orders}
-                                loading={ordersLoading}
-                                hasMore={hasMoreOrders}
-                                currentPage={ordersPage}
-                                onPageChange={handleOrdersPageChange}
-                            />
-                        </div>
-                    </section>
-                )}
+                    <main className="main-content">
+                        {message && (
+                            <div className={`message message-${message.type}`} style={{ marginBottom: '1rem' }}>
+                                {message.text}
+                            </div>
+                        )}
 
-                <footer className="footer">
-                    <p>Shopee Seller Hub © 2024. Built with ❤️ for Shopee sellers.</p>
-                </footer>
-            </main>
+                        {/* Dashboard for authenticated users */}
+                        <section className="dashboard">
+                            <div className="dashboard-header">
+                                <h1>Welcome back! 👋</h1>
+                                <p>Here&apos;s what&apos;s happening with your store today.</p>
+                            </div>
+
+                            {/* Shop Info Card */}
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <ShopInfo shop={shop} loading={shopLoading} />
+                            </div>
+
+                            {/* Products and Orders Grid */}
+                            <div className="grid grid-2">
+                                <ProductList
+                                    products={products}
+                                    loading={productsLoading}
+                                    hasMore={hasMoreProducts}
+                                    currentPage={productsPage}
+                                    totalItems={totalProducts}
+                                    pageSize={PAGE_SIZE}
+                                    onPageChange={handleProductsPageChange}
+                                    onStockUpdate={handleStockUpdate}
+                                />
+                                <OrderList
+                                    orders={orders}
+                                    loading={ordersLoading}
+                                    hasMore={hasMoreOrders}
+                                    currentPage={ordersPage}
+                                    onPageChange={handleOrdersPageChange}
+                                />
+                            </div>
+                        </section>
+
+                        <footer className="footer">
+                            <p>Shopee Seller Hub © 2025 for Shopee sellers.</p>
+                        </footer>
+                    </main>
+                </div>
+            )}
         </>
     );
 }

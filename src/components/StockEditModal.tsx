@@ -9,6 +9,7 @@ interface Model {
     current_stock?: number;
     seller_stock?: Array<{ stock: number }>;
     stock_info_v2?: StockInfo;
+    tier_index?: number[];
 }
 
 interface StockEditModalProps {
@@ -23,7 +24,7 @@ interface StockValue {
     stock: number;
     stock_info_v2?: StockInfo;
     original_stock: number;
-    model_name: string;
+    model_name?: string;
 }
 
 interface StockInfo {
@@ -64,10 +65,22 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
             console.log('Modal - Models response:', data);
 
             if (data.response?.model && data.response.model.length > 0) {
-                setModels(data.response.model);
-                // Initialize stock values from models
-                const values = data.response.model.map((model: Model) => {
-                    const currentStock = model.seller_stock?.[0]?.stock ?? model.current_stock ?? 0;
+                // Sort models by tier_index for consistent ordering
+                const sortedModels = [...data.response.model].sort((a: Model, b: Model) => {
+                    const tierA = a.tier_index || [];
+                    const tierB = b.tier_index || [];
+                    // Compare each tier level
+                    for (let i = 0; i < Math.max(tierA.length, tierB.length); i++) {
+                        const valA = tierA[i] ?? 0;
+                        const valB = tierB[i] ?? 0;
+                        if (valA !== valB) return valA - valB;
+                    }
+                    return 0;
+                });
+                setModels(sortedModels);
+                // Initialize stock values from models - use total_available_stock as current value
+                const values = sortedModels.map((model: Model) => {
+                    const currentStock = model.stock_info_v2?.summary_info?.total_available_stock ?? model.seller_stock?.[0]?.stock ?? model.current_stock ?? 0;
                     return {
                         model_id: model.model_id,
                         stock: currentStock,
@@ -186,13 +199,11 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
                         <div className="stock-list">
                             <div className="stock-list-header">
                                 <span>Model</span>
-                                <span>Current</span>
-                                <span>New Stock</span>
+                                <span>Stock</span>
                             </div>
                             {stockValues.map((item) => (
                                 <div key={item.model_id} className="stock-item">
                                     <span className="model-name">{item.model_name}</span>
-                                    <span className="current-stock">{item.stock_info_v2?.summary_info?.total_available_stock}</span>
                                     <input
                                         type="number"
                                         min="0"
@@ -289,7 +300,7 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
                 }
                 .stock-list-header {
                     display: grid;
-                    grid-template-columns: 1fr 80px 100px;
+                    grid-template-columns: 1fr 100px;
                     gap: 1rem;
                     padding: 0.5rem 0;
                     color: var(--text-secondary);
@@ -300,7 +311,7 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
                 }
                 .stock-item {
                     display: grid;
-                    grid-template-columns: 1fr 80px 100px;
+                    grid-template-columns: 1fr 100px;
                     gap: 1rem;
                     align-items: center;
                     padding: 0.75rem 0;
