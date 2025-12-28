@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
+    "deploy:sit": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy --config wrangler.sit.jsonc",
+    "deploy:prod": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy --config wrangler.production.jsonc"
   },
   "dependencies": {
     "next": "^15.5.9",
