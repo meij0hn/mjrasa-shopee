@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
         const searchParams = request.nextUrl.searchParams;
         const offset = parseInt(searchParams.get('offset') || '0');
-        const pageSize = parseInt(searchParams.get('page_size') || '20');
+        const pageSize = parseInt(searchParams.get('page_size') || '5');
 
         const result = await getProductList(
             accessToken,

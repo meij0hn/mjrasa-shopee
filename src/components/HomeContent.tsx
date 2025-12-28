@@ -26,6 +26,8 @@ interface Order {
     create_time?: number;
 }
 
+const PAGE_SIZE = 5;
+
 export default function HomeContent() {
     const searchParams = useSearchParams();
     const [isConnected, setIsConnected] = useState(false);
@@ -39,6 +41,13 @@ export default function HomeContent() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [hasMoreProducts, setHasMoreProducts] = useState(false);
     const [hasMoreOrders, setHasMoreOrders] = useState(false);
+    const [totalProducts, setTotalProducts] = useState<number | undefined>(undefined);
+
+    // Pagination state
+    const [productsPage, setProductsPage] = useState(1);
+    const [ordersPage, setOrdersPage] = useState(1);
+    const [ordersCursor, setOrdersCursor] = useState<string | undefined>(undefined);
+    const [ordersCursorHistory, setOrdersCursorHistory] = useState<string[]>([]);
 
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -75,16 +84,14 @@ export default function HomeContent() {
         checkAuth();
     }, []);
 
-    // Fetch data when connected
-    const fetchData = useCallback(async () => {
+    // Fetch shop info once when connected
+    const fetchShopInfo = useCallback(async () => {
         if (!isConnected) return;
 
-        // Fetch shop info
         setShopLoading(true);
         try {
             const res = await fetch('/api/shop');
             const data = await res.json();
-            console.log('Shop API Response:', data);
 
             if (data.response) {
                 setShop(data.response);
@@ -98,32 +105,50 @@ export default function HomeContent() {
         } finally {
             setShopLoading(false);
         }
+    }, [isConnected]);
 
-        // Fetch products
+    // Fetch products with pagination
+    const fetchProducts = useCallback(async (page: number = 1) => {
+        if (!isConnected) return;
+
         setProductsLoading(true);
         try {
-            const res = await fetch('/api/products');
+            const offset = (page - 1) * PAGE_SIZE;
+            const res = await fetch(`/api/products?offset=${offset}&page_size=${PAGE_SIZE}`);
             const data = await res.json();
             if (data.response?.item) {
                 setProducts(data.response.item);
                 setHasMoreProducts(data.response.has_next_page);
+                setTotalProducts(data.response.total_count);
             }
         } catch (error) {
             console.error('Products fetch failed:', error);
         } finally {
             setProductsLoading(false);
         }
+    }, [isConnected]);
 
-        // Fetch orders
+    // Fetch orders with pagination
+    const fetchOrders = useCallback(async (page: number = 1, cursor?: string) => {
+        if (!isConnected) return;
+
         setOrdersLoading(true);
         try {
-            const res = await fetch('/api/orders');
+            let url = `/api/orders?page_size=${PAGE_SIZE}`;
+            if (cursor) {
+                url += `&cursor=${cursor}`;
+            }
+
+            const res = await fetch(url);
             const data = await res.json();
-            console.log('Orders API Response:', data);
 
             if (data.response?.order_list) {
                 setOrders(data.response.order_list);
                 setHasMoreOrders(data.response.more);
+                // Store the next cursor if available
+                if (data.response.next_cursor) {
+                    setOrdersCursor(data.response.next_cursor);
+                }
             } else if (data.order_list) {
                 setOrders(data.order_list);
                 setHasMoreOrders(data.more);
@@ -135,9 +160,40 @@ export default function HomeContent() {
         }
     }, [isConnected]);
 
+    // Initial data fetch
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (isConnected) {
+            fetchShopInfo();
+            fetchProducts(1);
+            fetchOrders(1);
+        }
+    }, [isConnected, fetchShopInfo, fetchProducts, fetchOrders]);
+
+    // Handle products page change
+    const handleProductsPageChange = (page: number) => {
+        setProductsPage(page);
+        fetchProducts(page);
+    };
+
+    // Handle orders page change
+    const handleOrdersPageChange = (page: number) => {
+        if (page > ordersPage) {
+            // Going forward - store current cursor in history
+            if (ordersCursor) {
+                setOrdersCursorHistory(prev => [...prev, ordersCursor]);
+            }
+            setOrdersPage(page);
+            fetchOrders(page, ordersCursor);
+        } else if (page < ordersPage) {
+            // Going backward - pop cursor from history
+            const newHistory = [...ordersCursorHistory];
+            newHistory.pop();
+            const prevCursor = newHistory[newHistory.length - 1];
+            setOrdersCursorHistory(newHistory);
+            setOrdersPage(page);
+            fetchOrders(page, prevCursor);
+        }
+    };
 
     // Handle logout
     const handleLogout = async () => {
@@ -147,10 +203,17 @@ export default function HomeContent() {
             setShop(null);
             setProducts([]);
             setOrders([]);
+            setProductsPage(1);
+            setOrdersPage(1);
             setMessage({ type: 'success', text: '👋 Logged out successfully' });
         } catch (error) {
             console.error('Logout failed:', error);
         }
+    };
+
+    // Handle stock update - refresh products
+    const handleStockUpdate = () => {
+        fetchProducts(productsPage);
     };
 
     if (loading) {
@@ -243,12 +306,18 @@ export default function HomeContent() {
                                 products={products}
                                 loading={productsLoading}
                                 hasMore={hasMoreProducts}
-                                onStockUpdate={fetchData}
+                                currentPage={productsPage}
+                                totalItems={totalProducts}
+                                pageSize={PAGE_SIZE}
+                                onPageChange={handleProductsPageChange}
+                                onStockUpdate={handleStockUpdate}
                             />
                             <OrderList
                                 orders={orders}
                                 loading={ordersLoading}
                                 hasMore={hasMoreOrders}
+                                currentPage={ordersPage}
+                                onPageChange={handleOrdersPageChange}
                             />
                         </div>
                     </section>

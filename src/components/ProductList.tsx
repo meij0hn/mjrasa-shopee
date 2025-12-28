@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import StockEditModal from './StockEditModal';
+import Pagination from './Pagination';
 
 interface Product {
     item_id: number;
@@ -13,10 +14,23 @@ interface ProductListProps {
     products: Product[];
     loading: boolean;
     hasMore?: boolean;
+    currentPage: number;
+    totalItems?: number;
+    pageSize?: number;
+    onPageChange: (page: number) => void;
     onStockUpdate?: () => void;
 }
 
-export default function ProductList({ products, loading, hasMore, onStockUpdate }: ProductListProps) {
+export default function ProductList({
+    products,
+    loading,
+    hasMore,
+    currentPage,
+    totalItems,
+    pageSize = 20,
+    onPageChange,
+    onStockUpdate
+}: ProductListProps) {
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
 
     const handleEditClick = (product: Product) => {
@@ -65,7 +79,9 @@ export default function ProductList({ products, loading, hasMore, onStockUpdate 
             <div className="card">
                 <div className="card-header">
                     <span className="card-title">📦 Products</span>
-                    <span className="badge badge-info">{products.length} items</span>
+                    <span className="badge badge-info">
+                        {totalItems !== undefined ? `${totalItems} total` : `${products.length} items`}
+                    </span>
                 </div>
 
                 {products.length === 0 ? (
@@ -112,13 +128,16 @@ export default function ProductList({ products, loading, hasMore, onStockUpdate 
                                 ))}
                             </tbody>
                         </table>
-                        {hasMore && (
-                            <div style={{ textAlign: 'center', padding: '1rem' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                                    More products available...
-                                </span>
-                            </div>
-                        )}
+
+                        <Pagination
+                            currentPage={currentPage}
+                            hasNextPage={hasMore}
+                            hasPrevPage={currentPage > 1}
+                            onPageChange={onPageChange}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            loading={loading}
+                        />
                     </div>
                 )}
             </div>

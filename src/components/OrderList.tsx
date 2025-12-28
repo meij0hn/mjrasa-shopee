@@ -1,5 +1,7 @@
 'use client';
 
+import Pagination from './Pagination';
+
 interface Order {
     order_sn: string;
     order_status: string;
@@ -10,9 +12,17 @@ interface OrderListProps {
     orders: Order[];
     loading: boolean;
     hasMore?: boolean;
+    currentPage: number;
+    onPageChange: (page: number) => void;
 }
 
-export default function OrderList({ orders, loading, hasMore }: OrderListProps) {
+export default function OrderList({
+    orders,
+    loading,
+    hasMore,
+    currentPage,
+    onPageChange
+}: OrderListProps) {
     if (loading) {
         return (
             <div className="card">
@@ -84,13 +94,14 @@ export default function OrderList({ orders, loading, hasMore }: OrderListProps) 
                             ))}
                         </tbody>
                     </table>
-                    {hasMore && (
-                        <div style={{ textAlign: 'center', padding: '1rem' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                                More orders available...
-                            </span>
-                        </div>
-                    )}
+
+                    <Pagination
+                        currentPage={currentPage}
+                        hasNextPage={hasMore}
+                        hasPrevPage={currentPage > 1}
+                        onPageChange={onPageChange}
+                        loading={loading}
+                    />
                 </div>
             )}
         </div>

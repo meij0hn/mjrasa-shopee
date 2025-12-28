@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
         const searchParams = request.nextUrl.searchParams;
         const pageSize = parseInt(searchParams.get('page_size') || '20');
+        const cursor = searchParams.get('cursor') || undefined;
 
         // Step 1: Get orders from last 15 days
         const now = Math.floor(Date.now() / 1000);
@@ -27,14 +28,23 @@ export async function GET(request: NextRequest) {
             parseInt(shopId),
             fifteenDaysAgo,
             now,
-            pageSize
+            pageSize,
+            cursor
         );
 
         // Check if we have orders
         const orders = orderListResult.response?.order_list || orderListResult.order_list || [];
+        const hasMore = orderListResult.response?.more || orderListResult.more || false;
+        const nextCursor = orderListResult.response?.next_cursor || orderListResult.next_cursor;
 
         if (orders.length === 0) {
-            return NextResponse.json(orderListResult);
+            return NextResponse.json({
+                response: {
+                    order_list: [],
+                    more: false,
+                    next_cursor: null,
+                },
+            });
         }
 
         // Step 2: Try to get order details
@@ -63,7 +73,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({
                 response: {
                     order_list: enhancedOrders,
-                    more: orderListResult.response?.more || orderListResult.more || false,
+                    more: hasMore,
+                    next_cursor: nextCursor,
                 },
                 sandbox_notice: 'Order details not fully available in sandbox environment',
             });
@@ -73,7 +84,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             response: {
                 order_list: detailedOrders,
-                more: orderListResult.response?.more || orderListResult.more || false,
+                more: hasMore,
+                next_cursor: nextCursor,
             },
         });
     } catch (error) {

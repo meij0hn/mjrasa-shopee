@@ -207,7 +207,8 @@ export async function getOrderList(
   shopId: number,
   timeFrom: number,
   timeTo: number,
-  pageSize: number = 20
+  pageSize: number = 20,
+  cursor?: string
 ) {
   const path = '/api/v2/order/get_order_list';
   const timestamp = Math.floor(Date.now() / 1000);
@@ -224,6 +225,10 @@ export async function getOrderList(
     time_to: timeTo.toString(),
     page_size: pageSize.toString(),
   });
+
+  if (cursor) {
+    params.append('cursor', cursor);
+  }
 
   const url = `${API_URL}${path}?${params.toString()}`;
   const response = await fetch(url);
