@@ -462,6 +462,8 @@ interface TierVariation {
 interface ModelInfo {
   tier_index: number[];
   model_sku?: string;
+  seller_stock?: { stock: number }[];
+  original_price?: number;
 }
 
 /**
@@ -518,3 +520,126 @@ export async function updateTierVariation(
   return result;
 }
 
+/**
+ * Model info for add_model API
+ */
+interface AddModelItem {
+  tier_index: number[];
+  price: number;
+  stock?: number;
+  weight?: number;
+  model_sku?: string;
+}
+
+/**
+ * Add models (variants) to a product
+ * API: v2/product/add_model
+ */
+export async function addModel(
+  accessToken: string,
+  shopId: number,
+  itemId: number,
+  modelList: AddModelItem[]
+) {
+  const path = '/api/v2/product/add_model';
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
+
+  const params = new URLSearchParams({
+    partner_id: PARTNER_ID,
+    timestamp: timestamp.toString(),
+    access_token: accessToken,
+    shop_id: shopId.toString(),
+    sign: sign,
+  });
+
+  const url = `${API_URL}${path}?${params.toString()}`;
+
+  const body = {
+    item_id: itemId,
+    model_list: modelList.map(item => ({
+      tier_index: item.tier_index,
+      seller_stock: [{
+        stock: item.stock ?? 1, // Default stock = 1
+      }],
+      original_price: item.price,
+      weight: item.weight,
+      model_sku: item.model_sku,
+    })),
+  };
+
+  console.log('addModel URL:', url);
+  console.log('addModel Body:', JSON.stringify(body, null, 2));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json();
+  console.log('addModel Response:', JSON.stringify(result, null, 2));
+  return result;
+}
+
+/**
+ * Update model info for update_model API
+ */
+interface UpdateModelItem {
+  model_id: number;
+  original_price?: number;
+  weight?: number;
+  model_sku?: string;
+}
+
+/**
+ * Update existing models (variants) of a product
+ * API: v2/product/update_model
+ */
+export async function updateModel(
+  accessToken: string,
+  shopId: number,
+  itemId: number,
+  modelList: UpdateModelItem[]
+) {
+  const path = '/api/v2/product/update_model';
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateSign(PARTNER_ID, path, timestamp, accessToken, shopId);
+
+  const params = new URLSearchParams({
+    partner_id: PARTNER_ID,
+    timestamp: timestamp.toString(),
+    access_token: accessToken,
+    shop_id: shopId.toString(),
+    sign: sign,
+  });
+
+  const url = `${API_URL}${path}?${params.toString()}`;
+
+  const body = {
+    item_id: itemId,
+    model: modelList.map(item => ({
+      model_id: item.model_id,
+      original_price: item.original_price,
+      weight: item.weight,
+      model_sku: item.model_sku,
+    })),
+  };
+
+  console.log('updateModel URL:', url);
+  console.log('updateModel Body:', JSON.stringify(body, null, 2));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json();
+  console.log('updateModel Response:', JSON.stringify(result, null, 2));
+  return result;
+}

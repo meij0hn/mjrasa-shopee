@@ -1,6 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Cleave from 'cleave.js/react';
+import { CleaveOptions } from 'cleave.js/options';
+
+// Cleave options for stock input
+const cleaveOptions: CleaveOptions = {
+    numeral: true,
+    numeralThousandsGroupStyle: 'thousand' as const,
+    numeralDecimalScale: 0,
+    numeralDecimalMark: '.',
+    delimiter: ',',
+};
 
 interface Model {
     model_id: number;
@@ -116,8 +127,8 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
         }
     };
 
-    const handleStockChange = (modelId: number, value: string) => {
-        const numValue = parseInt(value) || 0;
+    const handleStockChange = (modelId: number, rawValue: string) => {
+        const numValue = parseInt(rawValue) || 0;
         setStockValues(prev =>
             prev.map(item =>
                 item.model_id === modelId ? { ...item, stock: numValue } : item
@@ -204,11 +215,10 @@ export default function StockEditModal({ isOpen, onClose, itemId, onSuccess }: S
                             {stockValues.map((item) => (
                                 <div key={item.model_id} className="stock-item">
                                     <span className="model-name">{item.model_name}</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={item.stock}
-                                        onChange={(e) => handleStockChange(item.model_id, e.target.value)}
+                                    <Cleave
+                                        options={cleaveOptions}
+                                        value={item.stock.toString()}
+                                        onChange={(e) => handleStockChange(item.model_id, e.target.rawValue)}
                                         className="stock-input"
                                         disabled={updating}
                                     />

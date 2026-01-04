@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Warehouse, Eraser } from 'lucide-react';
+import { Warehouse, Eraser, Settings } from 'lucide-react';
 import StockEditModal from './StockEditModal';
 import DeleteEmptyStockModal from './DeleteEmptyStockModal';
+import VariationEditModal from './VariationEditModal';
 import Pagination from './Pagination';
 
 interface Product {
@@ -36,6 +37,7 @@ export default function ProductList({
 }: ProductListProps) {
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
     const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+    const [variationItemId, setVariationItemId] = useState<number | null>(null);
 
     const handleEditClick = (product: Product) => {
         setEditingItemId(product.item_id);
@@ -60,6 +62,20 @@ export default function ProductList({
     };
 
     const handleDeleteSuccess = () => {
+        if (onStockUpdate) {
+            onStockUpdate();
+        }
+    };
+
+    const handleVariationEdit = (product: Product) => {
+        setVariationItemId(product.item_id);
+    };
+
+    const handleCloseVariationModal = () => {
+        setVariationItemId(null);
+    };
+
+    const handleVariationSuccess = () => {
         if (onStockUpdate) {
             onStockUpdate();
         }
@@ -140,6 +156,14 @@ export default function ProductList({
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button
+                                                    onClick={() => handleVariationEdit(product)}
+                                                    className="btn btn-secondary"
+                                                    style={{ padding: '0.5rem', lineHeight: 1 }}
+                                                    title="Edit Variasi"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                                <button
                                                     onClick={() => handleEditClick(product)}
                                                     className="btn btn-secondary"
                                                     style={{ padding: '0.5rem', lineHeight: 1 }}
@@ -192,6 +216,16 @@ export default function ProductList({
                     onClose={handleCloseDeleteModal}
                     itemId={deletingItemId}
                     onSuccess={handleDeleteSuccess}
+                />
+            )}
+
+            {/* Variation Edit Modal */}
+            {variationItemId !== null && (
+                <VariationEditModal
+                    isOpen={variationItemId !== null}
+                    onClose={handleCloseVariationModal}
+                    itemId={variationItemId}
+                    onSuccess={handleVariationSuccess}
                 />
             )}
         </>
